@@ -1,0 +1,101 @@
+# WordPress Plugin .gitignore
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.settings/
+.classpath
+
+# Logs and debugging
+*.log
+debug.log
+error_log
+*.tmp
+*.temp
+
+# Backup files
+*.bak
+*.backup
+*.old
+*.orig
+
+# Package managers
+node_modules/
+vendor/
+composer.lock
+package-lock.json
+yarn.lock
+
+# Build and distribution
+/dist/
+/build/
+*.zip
+*.tar.gz
+
+# Environment files
+.env
+.env.local
+.env.production
+.env.staging
+
+# Testing
+/tests/coverage/
+phpunit.xml
+.phpunit.result.cache
+
+# Documentation build
+/docs/build/
+
+# Temporary files
+*.cache
+.cache/
+
+# WordPress specific
+wp-config.php
+wp-content/uploads/
+wp-content/cache/
+wp-content/backup-db/
+wp-content/backups/
+wp-content/blogs.dir/
+wp-content/upgrade/
+wp-content/uploads/
+wp-content/mu-plugins/
+wp-content/wp-cache-config.php
+wp-content/plugins/hello.php
+
+# Plugin specific (if you have any)
+# Add any plugin-specific files or directories here
+
+# Local development
+local-config.php
+wp-content/advanced-cache.php
+wp-content/wp-cache-config.php
+
+# Database dumps
+*.sql
+*.sql.gz
+
+# SSL certificates
+*.pem
+*.key
+*.crt
+
+# Archive files
+*.zip
+*.tar
+*.gz
+*.rar
+*.7z
