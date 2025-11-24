@@ -176,6 +176,55 @@ class Production_Image_Redirector_URL_Redirector
 	}
 
 	/**
+	 * Check if URL is in the uploads directory
+	 * Optimized to avoid parse_url() when possible
+	 */
+	private function is_uploads_url($url)
+	{
+		// Quick check: if URL doesn't contain 'uploads', skip early
+		// This catches most non-uploads URLs without parsing
+		if (strpos($url, 'uploads') === false) {
+			return false;
+		}
+
+		// Normalize path separators early
+		$normalized_url = str_replace('\\', '/', $url);
+
+		// Fast path: check for standard WordPress uploads directory
+		// Most common case - check this first
+		if (strpos($normalized_url, '/wp-content/uploads/') !== false) {
+			return true;
+		}
+
+		// Check for relative URLs that start with wp-content/uploads/
+		if (strpos($normalized_url, 'wp-content/uploads/') === 0) {
+			return true;
+		}
+
+		// Check for custom uploads directory (if WordPress UPLOADS constant is set)
+		// This is less common, so we check it last
+		if (defined('UPLOADS')) {
+			$uploads_path = trim(UPLOADS, '/');
+			if (!empty($uploads_path)) {
+				// Only parse URL if we need to check custom path
+				$parsed_url = parse_url($normalized_url);
+				$path = isset($parsed_url['path']) ? $parsed_url['path'] : $normalized_url;
+
+				// For relative URLs, use the full URL string
+				if (strpos($normalized_url, 'http') !== 0) {
+					$path = $normalized_url;
+				}
+
+				if (strpos($path, '/' . $uploads_path . '/') !== false) {
+					return true;
+				}
+			}
+		}
+
+		return false;
+	}
+
+	/**
 	 * Main URL redirection logic
 	 */
 	private function redirect_url($url)
@@ -187,11 +236,50 @@ class Production_Image_Redirector_URL_Redirector
 			return $url;
 		}
 
+		// Only redirect URLs that are in the uploads directory
+		if (!$this->is_uploads_url($url)) {
+			return $url;
+		}
+
+		// Get HTTP authentication credentials if set
+		$htpasswd_username = isset($options['htpasswd_username']) ? trim($options['htpasswd_username']) : '';
+		$htpasswd_password = isset($options['htpasswd_password']) ? trim($options['htpasswd_password']) : '';
+
 		// Remove trailing slash from production URL
 		$production_url = rtrim($production_url, '/');
 
+		// Parse the production URL to add credentials
+		$parsed_url = parse_url($production_url);
+		$scheme = isset($parsed_url['scheme']) ? $parsed_url['scheme'] . '://' : 'https://';
+		$host = isset($parsed_url['host']) ? $parsed_url['host'] : '';
+		$port = isset($parsed_url['port']) ? ':' . $parsed_url['port'] : '';
+		$path = isset($parsed_url['path']) ? $parsed_url['path'] : '';
+
+		// Build production URL with credentials if provided
+		if (!empty($htpasswd_username) && !empty($htpasswd_password)) {
+			// URL encode username and password to handle special characters
+			$encoded_username = rawurlencode($htpasswd_username);
+			$encoded_password = rawurlencode($htpasswd_password);
+			$production_url = $scheme . $encoded_username . ':' . $encoded_password . '@' . $host . $port . $path;
+		} else {
+			$production_url = $scheme . $host . $port . $path;
+		}
+
+		// Remove trailing slash after building URL
+		$production_url = rtrim($production_url, '/');
+
 		// If it's already a full URL pointing to the production site, return as is
-		if (strpos($url, $production_url) === 0) {
+		// Check against base URL without credentials for comparison
+		// Also check if URL already contains the host (with or without credentials)
+		$base_production_url = $scheme . $host . $port . $path;
+		$base_production_url = rtrim($base_production_url, '/');
+
+		// Parse the incoming URL to check if it's already pointing to production
+		$url_parsed = parse_url($url);
+		$url_host = isset($url_parsed['host']) ? $url_parsed['host'] : '';
+
+		// If the URL host matches the production host, return as is (it's already redirected)
+		if ($url_host === $host && !empty($host)) {
 			return $url;
 		}
 

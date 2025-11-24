@@ -130,3 +130,8 @@ register_deactivation_hook(__FILE__, array('Production_Image_Redirector_Activato
 
 // Register uninstall hook
 register_uninstall_hook(__FILE__, array('Production_Image_Redirector_Activator', 'uninstall'));
+
+// Handle new site creation in multisite
+if (is_multisite()) {
+	add_action('wpmu_new_blog', array('Production_Image_Redirector_Activator', 'activate_single_site'), 10, 1);
+}

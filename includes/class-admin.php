@@ -69,6 +69,22 @@ class Production_Image_Redirector_Admin
 			'production-image-redirector',
 			'production_image_redirector_section'
 		);
+
+		add_settings_field(
+			'htpasswd_username',
+			__('HTTP Authentication Username', 'production-image-redirector'),
+			array($this, 'htpasswd_username_callback'),
+			'production-image-redirector',
+			'production_image_redirector_section'
+		);
+
+		add_settings_field(
+			'htpasswd_password',
+			__('HTTP Authentication Password', 'production-image-redirector'),
+			array($this, 'htpasswd_password_callback'),
+			'production-image-redirector',
+			'production_image_redirector_section'
+		);
 	}
 
 	/**
@@ -76,6 +92,9 @@ class Production_Image_Redirector_Admin
 	 */
 	public function sanitize_settings($input)
 	{
+		// Get existing options to preserve values if fields are not submitted
+		$existing_options = get_option($this->option_name, array());
+
 		$sanitized = array();
 
 		if (isset($input['production_url'])) {
@@ -83,6 +102,28 @@ class Production_Image_Redirector_Admin
 		}
 
 		$sanitized['enable_redirect'] = isset($input['enable_redirect']) ? 1 : 0;
+
+		// Handle htpasswd_username: preserve existing if not submitted
+		if (isset($input['htpasswd_username'])) {
+			$sanitized['htpasswd_username'] = sanitize_text_field(trim($input['htpasswd_username']));
+		} elseif (isset($existing_options['htpasswd_username'])) {
+			// Preserve existing username if field is not in POST data
+			$sanitized['htpasswd_username'] = $existing_options['htpasswd_username'];
+		}
+
+		// Handle htpasswd_password: preserve existing if not submitted or empty
+		if (isset($input['htpasswd_password'])) {
+			// If password field is not empty, update it; otherwise keep existing password
+			if (!empty($input['htpasswd_password'])) {
+				$sanitized['htpasswd_password'] = sanitize_text_field($input['htpasswd_password']);
+			} elseif (isset($existing_options['htpasswd_password'])) {
+				// Keep existing password if field is left blank
+				$sanitized['htpasswd_password'] = $existing_options['htpasswd_password'];
+			}
+		} elseif (isset($existing_options['htpasswd_password'])) {
+			// Preserve existing password if field is not in POST data at all
+			$sanitized['htpasswd_password'] = $existing_options['htpasswd_password'];
+		}
 
 		return $sanitized;
 	}
@@ -93,6 +134,7 @@ class Production_Image_Redirector_Admin
 	public function settings_section_callback()
 	{
 		echo '<p>' . __('Configure the production site URL where images should be redirected from. This is useful for local/test environments.', 'production-image-redirector') . '</p>';
+		echo '<p>' . __('If your production site is protected by HTTP Basic Authentication (htpasswd), you can enter your credentials below to allow images to load.', 'production-image-redirector') . '</p>';
 	}
 
 	/**
@@ -115,6 +157,34 @@ class Production_Image_Redirector_Admin
 		$enable_redirect = isset($options['enable_redirect']) ? $options['enable_redirect'] : 0;
 		echo '<input type="checkbox" id="enable_redirect" name="' . $this->option_name . '[enable_redirect]" value="1" ' . checked(1, $enable_redirect, false) . ' />';
 		echo '<label for="enable_redirect">' . __('Enable image URL redirection to production site', 'production-image-redirector') . '</label>';
+	}
+
+	/**
+	 * HTTP Authentication username field callback
+	 */
+	public function htpasswd_username_callback()
+	{
+		$options = get_option($this->option_name);
+		$htpasswd_username = isset($options['htpasswd_username']) ? $options['htpasswd_username'] : '';
+		echo '<input type="text" id="htpasswd_username" name="' . $this->option_name . '[htpasswd_username]" value="' . esc_attr($htpasswd_username) . '" class="regular-text" />';
+		echo '<p class="description">' . __('Optional: Enter the username for HTTP Basic Authentication (htpasswd) if your production site requires it.', 'production-image-redirector') . '</p>';
+	}
+
+	/**
+	 * HTTP Authentication password field callback
+	 */
+	public function htpasswd_password_callback()
+	{
+		$options = get_option($this->option_name);
+		$htpasswd_password = isset($options['htpasswd_password']) ? $options['htpasswd_password'] : '';
+		// Show placeholder text if password exists, but don't show actual password
+		$placeholder = !empty($htpasswd_password) ? __('(Password is set)', 'production-image-redirector') : '';
+		echo '<input type="password" id="htpasswd_password" name="' . $this->option_name . '[htpasswd_password]" value="" class="regular-text" placeholder="' . esc_attr($placeholder) . '" autocomplete="new-password" />';
+		if (!empty($htpasswd_password)) {
+			echo '<p class="description">' . __('Leave blank to keep current password, or enter a new password to change it.', 'production-image-redirector') . '</p>';
+		} else {
+			echo '<p class="description">' . __('Optional: Enter the password for HTTP Basic Authentication (htpasswd) if your production site requires it.', 'production-image-redirector') . '</p>';
+		}
 	}
 
 	/**
