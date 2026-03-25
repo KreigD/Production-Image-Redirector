@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<ruleset name="Production Image Redirector">
+	<description>WordPress Coding Standards for the plugin source files.</description>
+
+	<file>.</file>
+	<exclude-pattern>*/vendor/*</exclude-pattern>
+
+	<rule ref="WordPress"/>
+	<rule ref="WordPress-Docs"/>
+
+	<!-- Short class filenames (class-admin.php, etc.) are standard for this plugin layout. -->
+	<rule ref="WordPress.Files.FileName.InvalidClassFileName">
+		<exclude-pattern>*</exclude-pattern>
+	</rule>
+
+	<!-- Main plugin file commonly bundles bootstrap function + loader class. -->
+	<rule ref="Universal.Files.SeparateFunctionsFromOO">
+		<exclude-pattern>production-image-redirector.php</exclude-pattern>
+	</rule>
+</ruleset>
